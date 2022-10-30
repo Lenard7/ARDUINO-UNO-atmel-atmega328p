@@ -9,11 +9,14 @@ set(PRODUCT_NAME my_firmware)
 # 8Mhz, this should match the crystal on your board,
 # I use 8Mhz and 3.3V for the lowest power consumption
 set(F_CPU 8000000UL)
+
 # CPU, you can find the list here:
 # https://gcc.gnu.org/onlinedocs/gcc/AVR-Options.html
 set(MCU atmega328p)
+
 # Default Baudrate for UART, read avr include/util/setbaud.h for usage
 set(BAUD 9600)
+
 # The programmer to use, read avrdude manual for list
 set(PROG_TYPE avrispmkII)
 
@@ -24,13 +27,11 @@ set(H_FUSE 0xda)
 set(L_FUSE 0xfd)
 set(LOCK_BIT 0xff)
 
-
 # Use AVR GCC toolchain
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_CXX_COMPILER avr-g++)
 set(CMAKE_C_COMPILER avr-gcc)
 set(CMAKE_ASM_COMPILER avr-gcc)
-
 
 # Pass defines to compiler
 add_definitions(
@@ -42,7 +43,8 @@ set(CMAKE_EXE_LINKER_FLAGS -mmcu=${MCU})
 
 add_compile_options(
     -mmcu=${MCU} # MCU
-    -std=gnu99 # C99 standard
+#     -std=gnu99 # C99 standard
+    -std=c++14
     -Os # optimize
     -Wall # enable warnings
     -Wno-main
@@ -63,20 +65,31 @@ add_compile_options(
     -fno-split-wide-types
     -fno-tree-scev-cprop
 )
-# file(GLOB SRC_FILES "${PROJECT_SOURCE_DIR}/*.cpp") # Load all files in src folder
-file(GLOB SRC_FILES "~/Desktop/Engineering_projects/Ele_projekti/ARDUINO-UNO-atmel-atmega328p/src/*.cpp")
+
+# file(GLOB SRC_FILES 
+#     "${PROJECT_SOURCE_DIR}/*.cpp"
+# ) # Load all files in src folder
+# file(GLOB SRC_FILES "~/Desktop/Engineering_projects/Ele_projekti/ARDUINO-UNO-atmel-atmega328p/src/*.cpp")
 
 # Create one target
-add_executable(${PRODUCT_NAME} ${SRC_FILES})
+add_executable(${PRODUCT_NAME} 
+    # ${SRC_FILES}
+    # ${PROJECT_SOURCE_DIR}/firmware/main.cpp
+    ${CMAKE_SOURCE_DIR}/src/firmware/main.cpp
+)
 
 # Rename the output to .elf as we will create multiple files
-set_target_properties(${PRODUCT_NAME} PROPERTIES OUTPUT_NAME ${PRODUCT_NAME}.elf)
+set_target_properties(${PRODUCT_NAME} 
+    PROPERTIES OUTPUT_NAME 
+        ${PRODUCT_NAME}.elf
+)
 
 # Strip binary for upload
 add_custom_target(strip ALL avr-strip ${PRODUCT_NAME}.elf DEPENDS ${PRODUCT_NAME})
 
 # Transform binary into hex file, we ignore the eeprom segments in the step
 add_custom_target(hex ALL avr-objcopy -R .eeprom -O ihex ${PRODUCT_NAME}.elf ${PRODUCT_NAME}.hex DEPENDS strip)
+
 # Transform binary into hex file, this is the eeprom part (empty if you don't
 # use eeprom static variables)
 add_custom_target(eeprom avr-objcopy -j .eeprom  --set-section-flags=.eeprom="alloc,load"  --change-section-lma .eeprom=0 -O ihex ${PRODUCT_NAME}.elf ${PRODUCT_NAME}.eep DEPENDS strip)

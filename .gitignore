@@ -37,7 +37,7 @@ CMakeCache.txt
 CMakeFiles
 CMakeScripts
 Testing
-# TODO [lpavic]: uncomment this when project is going to be set up for as CMake project
+# TODO [lpavic]: uncomment this when project is going to be set up for as CMake project - for now, before pushing to branch, erase build artifacts and then push
 # Makefile
 cmake_install.cmake
 install_manifest.txt
