@@ -17,6 +17,5 @@
 - tbd
 
 ## TODO
-- make all CMakeLists.txt files to work properly
-- make build to pass
-- make simple example to work on atmel board
+- make uploading to board to work properly
+- seperate code in different folders and make all CMakeLists.txt files to work properly
