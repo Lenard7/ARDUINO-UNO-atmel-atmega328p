@@ -17,5 +17,4 @@
 - tbd
 
 ## TODO
-- make uploading to board to work properly
 - seperate code in different folders and make all CMakeLists.txt files to work properly
