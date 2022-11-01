@@ -16,17 +16,19 @@ set(BAUD 115200)
 # Port for the board
 set(PORT /dev/ttyACM0)
 
-# TODO [lpavic]: see if this is needed
-# The programmer to use, read avrdude manual for list
-set(PROG_TYPE avrispmkII)
+# The programmer to use, read avrdude manual for list, depends which programmer does developer have as a hardware:
+# stk500, avrisp, avrispmkII
+# for now, works only with arduino programmer
+# set(PROG_TYPE avrispmkII)
+set(PROG_TYPE arduino)
 
-# TODO [lpavic]: see if this is needed
+# TODO [lpavic]: see how to use them, for now they are not important
 # AVR Fuses, must be in concordance with your hardware and F_CPU
 # http://eleccelerator.com/fusecalc/fusecalc.php?chip=atmega328p
-set(E_FUSE 0xfd)
-set(H_FUSE 0xda)
-set(L_FUSE 0xfd)
-set(LOCK_BIT 0xff)
+# set(E_FUSE 0xfd)
+# set(H_FUSE 0xda)
+# set(L_FUSE 0xfd)
+# set(LOCK_BIT 0xff)
 
 # Use AVR GCC toolchain
 set(CMAKE_SYSTEM_NAME Generic)
@@ -89,36 +91,43 @@ set_target_properties(${PROJECT_NAME}
         ${PROJECT_NAME}.elf
 )
 
-# TODO [lpavic]: see if this is needed or needs to be modified
+# Adding targets for Makefile - for details of using avrdude command, see avrdude.pdf chapter 2. Command Line Options
+# There are 3 ways to use targets inside Makefile (depending if using hex, eeprom...)
+# 1. use upload target that depends on hex target, which depends on strip target
+# 2. use upload_eeprom target that depends on eeprom target that depends on strip target
+# 3. directly use flash target
+
 # Strip binary for upload
 add_custom_target(strip ALL avr-strip ${PROJECT_NAME}.elf DEPENDS ${PROJECT_NAME})
 
-# TODO [lpavic]: see if this is needed or needs to be modified
+
+# 1. way
 # Transform binary into hex file, we ignore the eeprom segments in the step
 add_custom_target(hex ALL avr-objcopy -R .eeprom -O ihex ${PROJECT_NAME}.elf ${PROJECT_NAME}.hex DEPENDS strip)
 
-# TODO [lpavic]: see if this is needed or needs to be modified
-# Transform binary into hex file, this is the eeprom part (empty if you don't
-# use eeprom static variables)
+# Upload the firmware with avrdude
+add_custom_target(upload avrdude  -c ${PROG_TYPE} -p ${MCU} -P ${PORT} -U flash:w:${PROJECT_NAME}.hex DEPENDS hex)
+
+
+# 2. way
+# Transform binary into hex file, this is the eeprom part (empty if you don't use eeprom static variables)
 add_custom_target(eeprom avr-objcopy -j .eeprom  --set-section-flags=.eeprom="alloc,load"  --change-section-lma .eeprom=0 -O ihex ${PROJECT_NAME}.elf ${PROJECT_NAME}.eep DEPENDS strip)
 
-# TODO [lpavic]: see if this is needed or needs to be modified
-# Upload the firmware with avrdude
-add_custom_target(upload avrdude  -c ${PROG_TYPE} -p ${MCU} -U flash:w:${PROJECT_NAME}.hex DEPENDS hex)
-
-# TODO [lpavic]: see if this is needed or needs to be modified
 # Upload the eeprom with avrdude
-add_custom_target(upload_eeprom avrdude -c ${PROG_TYPE} -p ${MCU}  -U eeprom:w:${PROJECT_NAME}.eep DEPENDS eeprom)
+add_custom_target(upload_eeprom avrdude -c ${PROG_TYPE} -p ${MCU} -P ${PORT} -U eeprom:w:${PROJECT_NAME}.eep DEPENDS eeprom)
 
-# TODO [lpavic]: see if this is needed or needs to be modified
+
+# 3. way
+add_custom_target(flash avrdude -F -V -c arduino -p ${MCU} -P ${PORT} -b ${BAUD} -U flash:w:${PROJECT_NAME}.hex)
+
+
+# TODO [lpavic]: not used for now, see if this is needed or needs to be modified
 # Burn fuses
-add_custom_target(fuses avrdude -c ${PROG_TYPE} -p ${MCU}  -U lfuse:w:${L_FUSE}:m -U hfuse:w:${H_FUSE}:m -U efuse:w:${E_FUSE}:m -U lock:w:${LOCK_BIT}:m )
+# add_custom_target(fuses avrdude -c ${PROG_TYPE} -p ${MCU} -P ${PORT} -U lfuse:w:${L_FUSE}:m -U hfuse:w:${H_FUSE}:m -U efuse:w:${E_FUSE}:m -U lock:w:${LOCK_BIT}:m )
 
 # TODO [lpavic]: see if this is needed or needs to be modified - clean.sh script is sufficient for now
 # Clean extra files
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${PROJECT_NAME}.hex;${PROJECT_NAME}.eeprom;${PROJECT_NAME}.lst")
 
-# TODO [lpavic]: for test purpose only, compare this with privious targets and see what to do
-add_custom_target(upload_test avrdude -F -V -c arduino -p ${MCU} -P ${PORT} -b ${BAUD} -U flash:w:${PROJECT_NAME}.hex)
 
 add_subdirectory(src)
